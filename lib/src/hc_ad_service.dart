@@ -41,32 +41,25 @@ class HCAdService {
 
   Future<HCAdInitializeResult> initialize() async {
     if (!config.canRequestAds) {
-      _logInfo('initialize skipped: ${config.debugSummary}');
       return HCAdInitializeResult.disabled;
     }
     if (_initialized) {
-      _logDebug('initialize skipped: already initialized');
       return HCAdInitializeResult.initialized;
     }
     try {
-      _logInfo('initialize start: ${config.debugSummary}');
       await MobileAds.instance.initialize();
       _initialized = true;
-      _logInfo('initialize success');
       return HCAdInitializeResult.initialized;
-    } catch (error, stackTrace) {
-      _logWarning('initialize failed', error, stackTrace);
+    } catch (_) {
       return HCAdInitializeResult.failed;
     }
   }
 
   Future<HCAdLoadResult> loadBanner() async {
     if (!config.canRequestAds) {
-      _logInfo('banner load skipped: ${config.debugSummary}');
       return HCAdLoadResult.disabled;
     }
     if (!_initialized) {
-      _logWarning('banner load skipped: not initialized');
       return HCAdLoadResult.notInitialized;
     }
 
@@ -75,7 +68,6 @@ class HCAdService {
     final completer = Completer<HCAdLoadResult>();
     late final BannerAd ad;
     const size = AdSize.banner;
-    _logInfo('banner load start size=${size.width}x${size.height}');
     ad = BannerAd(
       adUnitId: config.admob!.androidBannerId,
       size: size,
@@ -87,14 +79,10 @@ class HCAdService {
             return;
           }
           _bannerAd = loadedAd as BannerAd;
-          _logInfo(
-            'banner load success size=${_bannerAd!.size.width}x${_bannerAd!.size.height}',
-          );
           _completeOnce(completer, HCAdLoadResult.loaded);
         },
         onAdFailedToLoad: (failedAd, error) async {
           await failedAd.dispose();
-          _logWarning('banner load failed: ${_formatLoadAdError(error)}');
           _completeOnce(completer, HCAdLoadResult.failed);
         },
       ),
@@ -102,21 +90,18 @@ class HCAdService {
 
     try {
       await ad.load();
-    } catch (error, stackTrace) {
+    } catch (_) {
       await ad.dispose();
-      _logWarning('banner load threw', error, stackTrace);
       _completeOnce(completer, HCAdLoadResult.failed);
     }
-    return _waitForLoadResult(completer, 'banner load', onTimeout: ad.dispose);
+    return _waitForLoadResult(completer, onTimeout: ad.dispose);
   }
 
   Future<HCAdLoadResult> loadRewarded() async {
     if (!config.canRequestAds) {
-      _logInfo('rewarded load skipped: ${config.debugSummary}');
       return HCAdLoadResult.disabled;
     }
     if (!_initialized) {
-      _logWarning('rewarded load skipped: not initialized');
       return HCAdLoadResult.notInitialized;
     }
 
@@ -124,7 +109,6 @@ class HCAdService {
     _rewardedAd = null;
     final completer = Completer<HCAdLoadResult>();
     try {
-      _logInfo('rewarded load start');
       await RewardedAd.load(
         adUnitId: config.admob!.androidRewardedId,
         request: const AdRequest(),
@@ -135,34 +119,28 @@ class HCAdService {
               return;
             }
             _rewardedAd = ad;
-            _logInfo('rewarded load success');
             _completeOnce(completer, HCAdLoadResult.loaded);
           },
           onAdFailedToLoad: (error) {
-            _logWarning('rewarded load failed: ${_formatLoadAdError(error)}');
             _completeOnce(completer, HCAdLoadResult.failed);
           },
         ),
       );
-    } catch (error, stackTrace) {
-      _logWarning('rewarded load threw', error, stackTrace);
+    } catch (_) {
       _completeOnce(completer, HCAdLoadResult.failed);
     }
-    return _waitForLoadResult(completer, 'rewarded load');
+    return _waitForLoadResult(completer);
   }
 
   Future<HCAdShowResult> showRewarded() async {
     if (!config.canRequestAds) {
-      _logInfo('rewarded show skipped: ${config.debugSummary}');
       return HCAdShowResult.disabled;
     }
     if (!_initialized) {
-      _logWarning('rewarded show skipped: not initialized');
       return HCAdShowResult.notInitialized;
     }
     final ad = _rewardedAd;
     if (ad == null) {
-      _logWarning('rewarded show skipped: not loaded');
       return HCAdShowResult.notLoaded;
     }
     _rewardedAd = null;
@@ -172,12 +150,10 @@ class HCAdService {
     ad.fullScreenContentCallback = FullScreenContentCallback(
       onAdFailedToShowFullScreenContent: (failedAd, error) async {
         await failedAd.dispose();
-        _logWarning('rewarded show failed: ${_formatAdError(error)}');
         _completeOnce(completer, HCAdShowResult.failed);
       },
       onAdDismissedFullScreenContent: (dismissedAd) async {
         await dismissedAd.dispose();
-        _logInfo('rewarded dismissed rewarded=$rewarded');
         _completeOnce(
           completer,
           rewarded ? HCAdShowResult.rewarded : HCAdShowResult.dismissed,
@@ -186,11 +162,9 @@ class HCAdService {
     );
 
     try {
-      _logInfo('rewarded show start');
       await ad.show(onUserEarnedReward: (_, _) => rewarded = true);
-    } catch (error, stackTrace) {
+    } catch (_) {
       await ad.dispose();
-      _logWarning('rewarded show threw', error, stackTrace);
       _completeOnce(completer, HCAdShowResult.failed);
     }
     return completer.future;
@@ -198,11 +172,9 @@ class HCAdService {
 
   Future<HCAdLoadResult> loadInterstitial() async {
     if (!config.canRequestAds) {
-      _logInfo('interstitial load skipped: ${config.debugSummary}');
       return HCAdLoadResult.disabled;
     }
     if (!_initialized) {
-      _logWarning('interstitial load skipped: not initialized');
       return HCAdLoadResult.notInitialized;
     }
 
@@ -210,7 +182,6 @@ class HCAdService {
     _interstitialAd = null;
     final completer = Completer<HCAdLoadResult>();
     try {
-      _logInfo('interstitial load start');
       await InterstitialAd.load(
         adUnitId: config.admob!.androidInterstitialId,
         request: const AdRequest(),
@@ -221,36 +192,28 @@ class HCAdService {
               return;
             }
             _interstitialAd = ad;
-            _logInfo('interstitial load success');
             _completeOnce(completer, HCAdLoadResult.loaded);
           },
           onAdFailedToLoad: (error) {
-            _logWarning(
-              'interstitial load failed: ${_formatLoadAdError(error)}',
-            );
             _completeOnce(completer, HCAdLoadResult.failed);
           },
         ),
       );
-    } catch (error, stackTrace) {
-      _logWarning('interstitial load threw', error, stackTrace);
+    } catch (_) {
       _completeOnce(completer, HCAdLoadResult.failed);
     }
-    return _waitForLoadResult(completer, 'interstitial load');
+    return _waitForLoadResult(completer);
   }
 
   Future<HCAdShowResult> showInterstitial() async {
     if (!config.canRequestAds) {
-      _logInfo('interstitial show skipped: ${config.debugSummary}');
       return HCAdShowResult.disabled;
     }
     if (!_initialized) {
-      _logWarning('interstitial show skipped: not initialized');
       return HCAdShowResult.notInitialized;
     }
     final ad = _interstitialAd;
     if (ad == null) {
-      _logWarning('interstitial show skipped: not loaded');
       return HCAdShowResult.notLoaded;
     }
     _interstitialAd = null;
@@ -259,22 +222,18 @@ class HCAdService {
     ad.fullScreenContentCallback = FullScreenContentCallback(
       onAdFailedToShowFullScreenContent: (failedAd, error) async {
         await failedAd.dispose();
-        _logWarning('interstitial show failed: ${_formatAdError(error)}');
         _completeOnce(completer, HCAdShowResult.failed);
       },
       onAdDismissedFullScreenContent: (dismissedAd) async {
         await dismissedAd.dispose();
-        _logInfo('interstitial dismissed');
         _completeOnce(completer, HCAdShowResult.dismissed);
       },
     );
 
     try {
-      _logInfo('interstitial show start');
       await ad.show();
-    } catch (error, stackTrace) {
+    } catch (_) {
       await ad.dispose();
-      _logWarning('interstitial show threw', error, stackTrace);
       _completeOnce(completer, HCAdShowResult.failed);
     }
     return completer.future;
@@ -296,15 +255,13 @@ class HCAdService {
   }
 
   Future<HCAdLoadResult> _waitForLoadResult(
-    Completer<HCAdLoadResult> completer,
-    String label, {
+    Completer<HCAdLoadResult> completer, {
     Future<void> Function()? onTimeout,
   }) async {
     final timer = Timer(_adLoadTimeout, () {
       if (completer.isCompleted) {
         return;
       }
-      _logWarning('$label timed out after ${_adLoadTimeout.inSeconds}s');
       if (onTimeout != null) {
         unawaited(onTimeout());
       }
@@ -316,18 +273,4 @@ class HCAdService {
       timer.cancel();
     }
   }
-
-  String _formatLoadAdError(LoadAdError error) {
-    return 'code=${error.code} domain=${error.domain} message=${error.message}';
-  }
-
-  String _formatAdError(AdError error) {
-    return 'code=${error.code} domain=${error.domain} message=${error.message}';
-  }
-
-  void _logInfo(String message) {}
-
-  void _logDebug(String message) {}
-
-  void _logWarning(String message, [Object? error, StackTrace? stackTrace]) {}
 }

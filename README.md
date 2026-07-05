@@ -8,7 +8,7 @@ Game code owns ad policy, rewards, analytics, and screen flow. This package owns
 final ads = HCAdService(config: HCAdConfig.fromDartDefine());
 
 await ads.initialize();
-final result = await ads.showRewarded(HCAdPlacement.rewardedContinue);
+final result = await ads.showRewarded();
 if (result == HCAdShowResult.rewarded) {
   // Apply the game reward.
 }
