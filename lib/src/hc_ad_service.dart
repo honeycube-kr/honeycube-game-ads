@@ -10,7 +10,9 @@ class HCAdService {
     : config = config ?? HCAdConfig.fromDartDefine(),
       _initialized = false;
 
-  HCAdService.initializedForTest({required this.config}) : _initialized = true;
+  HCAdService.initializedForTest({required this.config, BannerAd? banner})
+    : _initialized = true,
+      _bannerAd = banner;
 
   final HCAdConfig config;
   bool _initialized;
@@ -28,14 +30,12 @@ class HCAdService {
 
   Widget? buildBannerWidget({Key? key}) {
     final ad = _bannerAd;
-    if (ad == null) {
-      return null;
-    }
+    if (ad == null) return null;
     return SizedBox(
       key: key,
       width: ad.size.width.toDouble(),
       height: ad.size.height.toDouble(),
-      child: AdWidget(ad: ad),
+      child: AdWidget(key: ValueKey<BannerAd>(ad), ad: ad),
     );
   }
 
@@ -62,9 +62,9 @@ class HCAdService {
     if (!_initialized) {
       return HCAdLoadResult.notInitialized;
     }
-
-    await _bannerAd?.dispose();
-    _bannerAd = null;
+    if (_bannerAd != null) {
+      return HCAdLoadResult.loaded;
+    }
     final completer = Completer<HCAdLoadResult>();
     late final BannerAd ad;
     const size = AdSize.banner;
@@ -240,12 +240,17 @@ class HCAdService {
   }
 
   Future<void> dispose() async {
-    await _bannerAd?.dispose();
+    await disposeBanner();
     await _rewardedAd?.dispose();
     await _interstitialAd?.dispose();
-    _bannerAd = null;
     _rewardedAd = null;
     _interstitialAd = null;
+  }
+
+  Future<void> disposeBanner() async {
+    final ad = _bannerAd;
+    _bannerAd = null;
+    await ad?.dispose();
   }
 
   void _completeOnce<T>(Completer<T> completer, T value) {

@@ -1,8 +1,12 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:honeycube_game_ads/honeycube_game_ads.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   const enabledConfig = HCAdConfig(
     enabled: true,
     admob: HCAdMobConfig(
@@ -98,4 +102,44 @@ void main() {
       expect(await initialized.showInterstitial(), HCAdShowResult.notLoaded);
     },
   );
+
+  test('loaded banner is reused until explicitly disposed', () async {
+    final banner = BannerAd(
+      adUnitId: 'banner-id',
+      size: AdSize.banner,
+      request: const AdRequest(),
+      listener: const BannerAdListener(),
+    );
+    final service = HCAdService.initializedForTest(
+      config: enabledConfig,
+      banner: banner,
+    );
+
+    expect(await service.loadBanner(), HCAdLoadResult.loaded);
+
+    await service.disposeBanner();
+
+    expect(service.hasBanner, isFalse);
+    expect(service.buildBannerWidget(), isNull);
+  });
+
+  test('banner widget preserves slot key and identifies its ad widget', () {
+    final banner = BannerAd(
+      adUnitId: 'banner-id',
+      size: AdSize.banner,
+      request: const AdRequest(),
+      listener: const BannerAdListener(),
+    );
+    final service = HCAdService.initializedForTest(
+      config: enabledConfig,
+      banner: banner,
+    );
+    const slotKey = ValueKey<String>('slot');
+
+    final widget = service.buildBannerWidget(key: slotKey)! as SizedBox;
+    final adWidget = widget.child! as AdWidget;
+
+    expect(widget.key, slotKey);
+    expect(adWidget.key, ValueKey<BannerAd>(banner));
+  });
 }
