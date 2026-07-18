@@ -17,6 +17,8 @@ class HCAdService {
   final HCAdConfig config;
   bool _initialized;
   BannerAd? _bannerAd;
+  int _bannerRequestGeneration = 0;
+  Completer<HCAdLoadResult>? _bannerLoadCompleter;
   RewardedAd? _rewardedAd;
   InterstitialAd? _interstitialAd;
 
@@ -65,7 +67,9 @@ class HCAdService {
     if (_bannerAd != null) {
       return HCAdLoadResult.loaded;
     }
+    final requestGeneration = ++_bannerRequestGeneration;
     final completer = Completer<HCAdLoadResult>();
+    _bannerLoadCompleter = completer;
     late final BannerAd ad;
     const size = AdSize.banner;
     ad = BannerAd(
@@ -74,16 +78,17 @@ class HCAdService {
       request: const AdRequest(),
       listener: BannerAdListener(
         onAdLoaded: (loadedAd) async {
-          if (completer.isCompleted) {
+          if (requestGeneration != _bannerRequestGeneration ||
+              completer.isCompleted) {
             await loadedAd.dispose();
             return;
           }
           _bannerAd = loadedAd as BannerAd;
-          _completeOnce(completer, HCAdLoadResult.loaded);
+          _completeBannerLoad(completer, HCAdLoadResult.loaded);
         },
         onAdFailedToLoad: (failedAd, error) async {
           await failedAd.dispose();
-          _completeOnce(completer, HCAdLoadResult.failed);
+          _completeBannerLoad(completer, HCAdLoadResult.failed);
         },
       ),
     );
@@ -92,7 +97,7 @@ class HCAdService {
       await ad.load();
     } catch (_) {
       await ad.dispose();
-      _completeOnce(completer, HCAdLoadResult.failed);
+      _completeBannerLoad(completer, HCAdLoadResult.failed);
     }
     return _waitForLoadResult(completer, onTimeout: ad.dispose);
   }
@@ -248,9 +253,22 @@ class HCAdService {
   }
 
   Future<void> disposeBanner() async {
+    _bannerRequestGeneration++;
+    _completeBannerLoad(_bannerLoadCompleter, HCAdLoadResult.failed);
     final ad = _bannerAd;
     _bannerAd = null;
     await ad?.dispose();
+  }
+
+  void _completeBannerLoad(
+    Completer<HCAdLoadResult>? completer,
+    HCAdLoadResult value,
+  ) {
+    if (completer == null) return;
+    _completeOnce(completer, value);
+    if (identical(_bannerLoadCompleter, completer)) {
+      _bannerLoadCompleter = null;
+    }
   }
 
   void _completeOnce<T>(Completer<T> completer, T value) {
