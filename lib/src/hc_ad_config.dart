@@ -34,7 +34,16 @@ final class HCAdConfig {
   bool get isSupportedPlatform => platform == TargetPlatform.android;
 
   bool get canRequestAds =>
-      enabled && isSupportedPlatform && (admob?.hasRequiredIds ?? false);
+      enabled &&
+      isSupportedPlatform &&
+      (admob?.androidAppId.isNotEmpty ?? false);
+
+  bool get canRequestBanner =>
+      canRequestAds && (admob?.androidBannerId.isNotEmpty ?? false);
+  bool get canRequestRewarded =>
+      canRequestAds && (admob?.androidRewardedId.isNotEmpty ?? false);
+  bool get canRequestInterstitial =>
+      canRequestAds && (admob?.androidInterstitialId.isNotEmpty ?? false);
 
   String get debugSummary {
     final admob = this.admob;

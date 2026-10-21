@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -24,51 +23,48 @@ void main() {
     expect(config.canRequestAds, isFalse);
   });
 
-  test(
-    'config requires enabled flag, Android platform, and every Android ad id',
-    () {
-      expect(enabledConfig.canRequestAds, isTrue);
-      expect(
-        const HCAdConfig(
-          enabled: false,
-          admob: HCAdMobConfig(
-            androidAppId: 'android-app-id',
-            androidBannerId: 'banner-id',
-            androidRewardedId: 'rewarded-id',
-            androidInterstitialId: 'interstitial-id',
-          ),
-          platform: TargetPlatform.android,
-        ).canRequestAds,
-        isFalse,
-      );
-      expect(
-        const HCAdConfig(
-          enabled: true,
-          admob: HCAdMobConfig(
-            androidAppId: '',
-            androidBannerId: 'banner-id',
-            androidRewardedId: 'rewarded-id',
-            androidInterstitialId: 'interstitial-id',
-          ),
-          platform: TargetPlatform.android,
-        ).canRequestAds,
-        isFalse,
-      );
-      expect(
-        const HCAdConfig(
-          enabled: true,
-          admob: HCAdMobConfig(
-            androidAppId: 'android-app-id',
-            androidBannerId: 'banner-id',
-            androidRewardedId: 'rewarded-id',
-            androidInterstitialId: 'interstitial-id',
-          ),
-          platform: TargetPlatform.iOS,
-        ).canRequestAds,
-        isFalse,
-      );
-    },
-  );
+  test('common config requires enabled flag, Android platform, and app id', () {
+    expect(enabledConfig.canRequestAds, isTrue);
+    expect(
+      const HCAdConfig(
+        enabled: false,
+        admob: HCAdMobConfig(
+          androidAppId: 'android-app-id',
+          androidBannerId: 'banner-id',
+          androidRewardedId: 'rewarded-id',
+          androidInterstitialId: 'interstitial-id',
+        ),
+        platform: TargetPlatform.android,
+      ).canRequestAds,
+      isFalse,
+    );
+    expect(
+      const HCAdConfig(
+        enabled: true,
+        admob: HCAdMobConfig(
+          androidAppId: '',
+          androidBannerId: 'banner-id',
+          androidRewardedId: 'rewarded-id',
+          androidInterstitialId: 'interstitial-id',
+        ),
+        platform: TargetPlatform.android,
+      ).canRequestAds,
+      isFalse,
+    );
+    expect(
+      const HCAdConfig(
+        enabled: true,
+        admob: HCAdMobConfig(
+          androidAppId: 'android-app-id',
+          androidBannerId: 'banner-id',
+          androidRewardedId: 'rewarded-id',
+          androidInterstitialId: 'interstitial-id',
+        ),
+        platform: TargetPlatform.iOS,
+      ).canRequestAds,
+      isFalse,
+    );
+  });
 
   test('disabled service never initializes or shows ads', () async {
     final service = HCAdService(config: const HCAdConfig.disabled());

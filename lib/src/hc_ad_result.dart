@@ -10,3 +10,5 @@ enum HCAdShowResult {
   rewarded,
   failed,
 }
+
+enum HCAdConsentResult { disabled, ready, unavailable, failed }
